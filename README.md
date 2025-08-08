@@ -4,7 +4,8 @@ This project aims to develop machine learning models for prostate cancer predict
 
 ## 📂 Project Structure
 
-'''prostate-cancer-ml-model/
+---
+prostate-cancer-ml-model/
 │
 ├──src/
 │   ├── data_loader.py
@@ -15,6 +16,7 @@ This project aims to develop machine learning models for prostate cancer predict
 ├── requirements.txt
 ├── README.md'''
 
+---
 
 ## 🚀 Getting Started
 
