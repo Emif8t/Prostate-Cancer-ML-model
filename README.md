@@ -9,24 +9,6 @@ The goal is to build, evaluate, and deploy a reliable prediction model that can 
 
 ## 📂 Project Structure
 
-prostate-cancer-ml-model/
-│
-├── data/ # Raw and processed datasets (excluded from repo)
-│ └── .gitignore
-├── notebooks/ # Jupyter notebooks for EDA and experiments
-│ └── eda.ipynb
-├── src/ # Python scripts for the ML pipeline
-│ ├── data_loader.py # Data import functions
-│ ├── preprocess.py # Data cleaning & feature engineering
-│ ├── model.py # Model training & evaluation
-│ └── utils.py # Helper functions
-├── tests/ # Unit tests for the codebase
-│ └── test_model.py
-├── main.py # Entry point to run the project
-├── requirements.txt # Project dependencies
-├── .gitignore # Ignored files and folders
-├── LICENSE # Project license
-└── README.md # This file
 
 yaml
 Copy
@@ -41,9 +23,7 @@ Edit
 git clone https://github.com/your-username/prostate-cancer-ml-model.git
 cd prostate-cancer-ml-model
 2️⃣ Create and Activate a Virtual Environment
-bash
-Copy
-Edit
+
 python -m venv venv
 source venv/bin/activate      # On Mac/Linux
 venv\Scripts\activate         # On Windows
