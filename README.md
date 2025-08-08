@@ -1,20 +1,20 @@
 # Prostate-Cancer-ML-model
-This project aims to develop machine learning models for prostate cancer predictions in Africa.
-# Prostate Cancer Prediction – Machine Learning Project
+This project aims to develop machine learning models for prostate cancer predictions in Africa. This model will be clinically applicable in screening prostate cancer, thereby supporting early detection and management of the disease.
 
-This repository contains the development of a **machine learning model** for predicting prostate cancer risk, with a focus on data from Nigerian/African men.  
-The goal is to build, evaluate, and deploy a reliable prediction model that can assist in early screening and clinical decision-making.
-
----
 
 ## 📂 Project Structure
 
+prostate-cancer-ml-model/
+│
+├──src/
+│   ├── data_loader.py
+│   ├── preprocess.py
+│   └── model.py
+├── main.py
+├── .gitignore
+├── requirements.txt
+├── README.md
 
-yaml
-Copy
-Edit
-
----
 
 ## 🚀 Getting Started
 
