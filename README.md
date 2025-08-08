@@ -5,18 +5,37 @@ This project aims to develop machine learning models for prostate cancer predict
 ## 📂 Project Structure
 
 ---
+
+## 📂 Project Structure
+
 prostate-cancer-ml-model/
 │
-├──src/
-│   ├── data_loader.py
-│   ├── preprocess.py
-│   └── model.py
-├── main.py
-├── .gitignore
-├── requirements.txt
-├── README.md'''
+├── data/ # Raw and processed datasets (excluded from repo)
+│ └── .gitkeep
+├── notebooks/ # Jupyter notebooks for EDA and experiments
+│ └── eda.ipynb
+├── src/ # Python scripts for the ML pipeline
+│ ├── data_loader.py # Data import functions
+│ ├── preprocess.py # Data cleaning & feature engineering
+│ └── model.py # Model training & evaluation
+├── tests/ # Unit tests for the codebase
+│ └── test_model.py
+├── main.py # Entry point to run the project
+├── requirements.txt # Project dependencies
+├── .gitignore # Ignored files and folders
+├── LICENSE # Project license
+└── README.md # This file
+
+yaml
+Copy
+Edit
 
 ---
+
+## 🚀 Getting Started
+
+### 1️⃣ Clone the Repository
+```bash
 
 ## 🚀 Getting Started
 
