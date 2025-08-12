@@ -1,5 +1,12 @@
+import shap
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
+from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
+from sklearn.metrics import (
+    roc_auc_score, roc_curve, accuracy_score,
+    precision_score, recall_score, f1_score
+)
+
 
 def train_model(X_train, y_train):
     model = LogisticRegression(max_iter=1000)
