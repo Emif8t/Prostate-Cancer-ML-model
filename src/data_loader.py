@@ -1,5 +1,5 @@
 import pandas as pd
-from sklearn.datasets import load_breast_cancer
+import numpy as np
 
 def load_data():
     """
