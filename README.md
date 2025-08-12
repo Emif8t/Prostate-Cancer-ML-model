@@ -13,7 +13,8 @@ prostate-cancer-ml-model/
 ├── src/ # Python scripts for the ML pipeline
 │ ├── data_loader.py # Data import functions
 │ ├── preprocess.py # Data cleaning & feature engineering
-│ └── model.py # Model training & evaluation
+│ ├── model.py # Model training & evaluation
+│ └── plots.py # showing ROC $ SHAP plots
 ├── tests/ # Unit tests for the codebase
 │ └── test_model.py
 ├── main.py # Entry point to run the project
