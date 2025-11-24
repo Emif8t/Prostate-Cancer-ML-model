@@ -4,29 +4,25 @@ from sklearn.model_selection import train_test_split
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 
-def preprocess_data(X, y):
-    # Standardize features
-    numeric_transformer = Pipeline(steps=[
-    ('scaler', StandardScaler())
-])
 
-categorical_transformer = Pipeline(steps=[
-    ('onehot', OneHotEncoder(handle_unknown='ignore'))
-])
+df = pd.read_excel(r"C:\Users\USER\Desktop\MLdata2.xlsx")
+
+target_col = "Diagnosis"
+df[target_col] = df[target_col].map({"BPH": 0, "Prostate": 1})
+
+X = df.drop(columns=[target_col])
+y = df[target_col]
+
+numeric_cols = X.select_dtypes(include=np.number).columns.tolist()
+categorical_cols = X.select_dtypes(exclude=np.number).columns.tolist()
+
+
 preprocessor = ColumnTransformer(
     transformers=[
-        ('num', numeric_transformer, numeric_features),
-        ('cat', categorical_transformer, categorical_features)
+        ("num", StandardScaler(), numeric_cols),
+        ("cat", OneHotEncoder(handle_unknown='ignore'), categorical_cols)
     ]
 )
 
-    # Train-test split
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
-    )
-
-
-
-    return X_train, X_test, y_train, y_test
 
 Add preprocess.py 
