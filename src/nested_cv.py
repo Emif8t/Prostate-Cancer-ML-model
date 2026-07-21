@@ -6,3 +6,6 @@ from sklearn.model_selection import (
     StratifiedKFold,
     GridSearchCV
 )
+
+
+ci = BootstrapCI.auc(y, y_prob_all)
