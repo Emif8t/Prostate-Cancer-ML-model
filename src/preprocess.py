@@ -1,28 +1,28 @@
-import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
+class Preprocessor:
+
+    @staticmethod
+    def encode_group(df):
+
+        df["Group"] = (
+
+            df["Group"]
+
+            .str.strip()
+
+            .str.lower()
+
+            .map({
+                "control":0,
+                "case":1
+            })
+
+        )
+
+        return df
 
 
-df = pd.read_excel(r"C:\Users\USER\Desktop\MLdata2.xlsx")
+data = Dataset(path)
 
-target_col = "Diagnosis"
-df[target_col] = df[target_col].map({"BPH": 0, "Prostate": 1})
+df = data.load()
 
-X = df.drop(columns=[target_col])
-y = df[target_col]
-
-numeric_cols = X.select_dtypes(include=np.number).columns.tolist()
-categorical_cols = X.select_dtypes(exclude=np.number).columns.tolist()
-
-
-preprocessor = ColumnTransformer(
-    transformers=[
-        ("num", StandardScaler(), numeric_cols),
-        ("cat", OneHotEncoder(handle_unknown='ignore'), categorical_cols)
-    ]
-)
-
-
-Add preprocess.py 
+df = Preprocessor.encode_group(df)
