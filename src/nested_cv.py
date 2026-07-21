@@ -1,99 +1,259 @@
-import numpy as np
+"""
+nested_cv.py
 
+Nested cross-validation framework for supervised machine learning.
+
+This module performs nested cross-validation, hyperparameter tuning,
+final model training, and model evaluation using multiple machine
+learning algorithms.
+"""
+
+import numpy as np
 import pandas as pd
 
-from sklearn.model_selection import (
-    StratifiedKFold,
-    GridSearchCV
+from sklearn.model_selection import StratifiedKFold
+
+from .config import (
+    RANDOM_STATE,
+    OUTER_FOLDS,
+    INNER_FOLDS
 )
 
+from .models import ModelFactory
+from .pipeline import PipelineBuilder
+from .bootstrap import BootstrapCI
+from .metrics import Metrics
 
-ci = BootstrapCI.auc(y, y_prob_all)
 
 class NestedCrossValidator:
+    """
+    Perform nested cross-validation for multiple machine learning models.
 
-    def __init__(self):
+    Parameters
+    ----------
+    model_factory : ModelFactory
+        Factory containing machine learning models and
+        their hyperparameter search spaces.
+    """
 
-        self.outer_cv = ...
+    def __init__(self, model_factory: ModelFactory):
 
-        self.inner_cv = ...
+        self.model_factory = model_factory
 
-
-_evaluate_model()
-
-for train_idx, test_idx in outer_cv.split(X, y):
-
-            X_train = X.iloc[train_idx]
-            X_test  = X.iloc[test_idx]
-
-            y_train = y.iloc[train_idx]
-            y_test  = y.iloc[test_idx]
-
-            pipeline = build_pipeline(model)
-
-            grid = GridSearchCV(
-                estimator=pipeline,
-                param_grid=param_grids[name],
-                scoring="roc_auc",
-                cv=inner_cv,
-                n_jobs=-1
-            )
-
-            grid.fit(X_train, y_train)
-
-            best_model = grid.best_estimator_
-
-            y_prob = best_model.predict_proba(X_test)[:,1]
-
-            y_prob_all[test_idx] = y_prob
-
-            sample_predictions.loc[test_idx, "Predicted_Probability"] = y_prob
-
-_train_final_model()
-    final_grid.fit(X, y)
-
-
-_calculate_metrics()
-
- y_pred = (y_prob_all >= 0.5).astype(int)
-
-        sample_predictions["Predicted_Class"] = y_pred
-
-        sample_predictions["Correct"] = (
-            sample_predictions["True_Label"] ==
-            sample_predictions["Predicted_Class"]
+        # Outer cross-validation
+        self.outer_cv = StratifiedKFold(
+            n_splits=OUTER_FOLDS,
+            shuffle=True,
+            random_state=RANDOM_STATE
         )
 
-        ci = bootstrap_auc_ci(y, y_prob_all)
+        # Inner cross-validation
+        self.inner_cv = StratifiedKFold(
+            n_splits=INNER_FOLDS,
+            shuffle=True,
+            random_state=RANDOM_STATE
+        )
 
-        tn, fp, fn, tp = confusion_matrix(y, y_pred).ravel()
-       
-        results[name] = {
+    def run(self, X: pd.DataFrame, y: pd.Series):
+        """
+        Evaluate all machine learning models using nested
+        cross-validation.
 
-            # Predictions
-            "y_prob": y_prob_all,
-            "y_pred": y_pred,\
+        Parameters
+        ----------
+        X : pandas.DataFrame
+            Feature matrix.
 
-            "Sample_Predictions": sample_predictions,
+        y : pandas.Series
+            Target labels.
 
-            # NEW: save feature names
-            "feature_names": X.columns.tolist(),
+        Returns
+        -------
+        tuple
+            results : dict
+                Performance metrics for all models.
 
-            "Best_Params": best_params,
-            
-            # Performance
-            "AUC": ci[1],
-            "AUC_Low": ci[0],
-            "AUC_High": ci[2],
+            final_models : dict
+                Optimized models trained on the full dataset.
+        """
 
-            "Accuracy": accuracy_score(y, y_pred),
-            "Precision": precision_score(y, y_pred),
-            "Recall": recall_score(y, y_pred),
-            "F1": f1_score(y, y_pred),
-            "Brier": brier_score_loss(y, y_prob_all),
+        results = {}
 
-            "Sensitivity": tp / (tp + fn),
-            "Specificity": tn / (tn + fp)
-        }
+        final_models = {}
 
-    return results, final_models
+        models = self.model_factory.get_all_models()
+
+        for model_name, model in models.items():
+
+            print(f"\nTraining: {model_name}")
+
+            result, final_model = self._evaluate_model(
+                model_name=model_name,
+                model=model,
+                X=X,
+                y=y
+            )
+
+            results[model_name] = result
+
+            final_models[model_name] = final_model
+
+        return results, final_models
+
+
+from sklearn.model_selection import GridSearchCV
+
+def _evaluate_model(
+    self,
+    model_name: str,
+    model,
+    X: pd.DataFrame,
+    y: pd.Series
+):
+    """
+    Evaluate a single machine learning model using nested
+    cross-validation.
+
+    Parameters
+    ----------
+    model_name : str
+        Name of the machine learning model.
+
+    model : sklearn estimator
+        Machine learning model.
+
+    X : pandas.DataFrame
+        Feature matrix.
+
+    y : pandas.Series
+        Target labels.
+
+    Returns
+    -------
+    tuple
+        Dictionary of model results and the final optimized model.
+    """
+
+    # -----------------------------------------
+    # Storage
+    # -----------------------------------------
+
+    y_prob_all = np.zeros(len(y))
+
+    sample_predictions = pd.DataFrame({
+
+        "Sample_ID": X.index,
+
+        "True_Label": y
+
+    })
+
+    # -----------------------------------------
+    # Hyperparameter grid
+    # -----------------------------------------
+
+    param_grid = self.model_factory.get_param_grid(model_name)
+
+    # -----------------------------------------
+    # Outer Cross Validation
+    # -----------------------------------------
+
+    for train_idx, test_idx in self.outer_cv.split(X, y):
+
+        X_train = X.iloc[train_idx]
+
+        X_test = X.iloc[test_idx]
+
+        y_train = y.iloc[train_idx]
+
+        y_test = y.iloc[test_idx]
+
+        # -----------------------------
+        # Build pipeline
+        # -----------------------------
+
+        pipeline = PipelineBuilder.build(model)
+
+        # -----------------------------
+        # Hyperparameter tuning
+        # -----------------------------
+
+        grid = GridSearchCV(
+
+            estimator=pipeline,
+
+            param_grid=param_grid,
+
+            scoring="roc_auc",
+
+            cv=self.inner_cv,
+
+            n_jobs=-1
+
+        )
+
+        grid.fit(
+
+            X_train,
+
+            y_train
+
+        )
+
+        # -----------------------------
+        # Best model
+        # -----------------------------
+
+        best_model = grid.best_estimator_
+
+        y_prob = best_model.predict_proba(
+
+            X_test
+
+        )[:, 1]
+
+        y_prob_all[test_idx] = y_prob
+
+        sample_predictions.loc[
+
+            test_idx,
+
+            "Predicted_Probability"
+
+        ] = y_prob
+
+    # -----------------------------------------
+    # Train final model on ALL samples
+    # -----------------------------------------
+
+    final_model, best_params = self._train_final_model(
+
+        model_name=model_name,
+
+        model=model,
+
+        X=X,
+
+        y=y
+
+    )
+
+    # -----------------------------------------
+    # Calculate metrics
+    # -----------------------------------------
+
+    result = self._calculate_metrics(
+
+        y=y,
+
+        y_prob_all=y_prob_all,
+
+        sample_predictions=sample_predictions,
+
+        feature_names=X.columns.tolist(),
+
+        best_params=best_params
+
+    )
+
+    return result, final_model
