@@ -25,3 +25,10 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+factory = ModelFactory()
+
+validator = NestedCrossValidator(factory)
+
+results, models = validator.run(X, y)
