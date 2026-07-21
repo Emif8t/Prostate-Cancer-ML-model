@@ -16,3 +16,13 @@ class Dataset:
         self.df = pd.read_excel(self.filepath)
 
         return self.df
+
+    def split_target(self, target):
+
+        X = self.df.drop(columns=[target])
+
+        y = self.df[target]
+
+        return X, y
+
+        X, y = data.split_target("Group")
