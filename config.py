@@ -12,7 +12,7 @@ MOLECULAR_FEATURES = [
 
     "Expression_CPS1",
 
-    "Methylation_CPS1",
+    "Methylation_ASS1",
 
     "Methylation_CPS1",
 
