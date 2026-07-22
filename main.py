@@ -123,13 +123,23 @@ def main():
     # Save Sample Predictions
     # =====================================================
 
-    combined_results["Extra Trees"]["Sample_Predictions"].to_excel(
+    Exporter.sample_predictions(
 
-        "ExtraTrees_Predictions.xlsx",
+    combined_results,
 
-        index=False
+    "Extra Trees",
 
-    )
+    "ExtraTrees_Predictions.xlsx"
+
+)
+
+    Exporter.metrics_table(
+
+    combined_results,
+
+    "Combined_Model_Metrics.xlsx"
+
+)
 
     print("\nPipeline completed successfully.")
 
