@@ -11,7 +11,10 @@ learning algorithms.
 import numpy as np
 import pandas as pd
 
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import (
+    StratifiedKFold,
+    GridSearchCV
+)
 
 from .config import (
     RANDOM_STATE,
@@ -32,8 +35,8 @@ class NestedCrossValidator:
     Parameters
     ----------
     model_factory : ModelFactory
-        Factory containing machine learning models and
-        their hyperparameter search spaces.
+        Factory containing machine learning models and their
+        corresponding hyperparameter search spaces.
     """
 
     def __init__(self, model_factory: ModelFactory):
@@ -54,10 +57,14 @@ class NestedCrossValidator:
             random_state=RANDOM_STATE
         )
 
-    def run(self, X: pd.DataFrame, y: pd.Series):
+    def run(
+        self,
+        X: pd.DataFrame,
+        y: pd.Series
+    ):
         """
-        Evaluate all machine learning models using nested
-        cross-validation.
+        Evaluate all machine learning models using
+        nested cross-validation.
 
         Parameters
         ----------
@@ -71,10 +78,10 @@ class NestedCrossValidator:
         -------
         tuple
             results : dict
-                Performance metrics for all models.
+                Dictionary containing performance metrics.
 
             final_models : dict
-                Optimized models trained on the full dataset.
+                Dictionary containing optimized models.
         """
 
         results = {}
@@ -85,13 +92,20 @@ class NestedCrossValidator:
 
         for model_name, model in models.items():
 
-            print(f"\nTraining: {model_name}")
+            print("=" * 60)
+            print(f"Training: {model_name}")
+            print("=" * 60)
 
             result, final_model = self._evaluate_model(
+
                 model_name=model_name,
+
                 model=model,
+
                 X=X,
+
                 y=y
+
             )
 
             results[model_name] = result
@@ -100,85 +114,188 @@ class NestedCrossValidator:
 
         return results, final_models
 
+    def _evaluate_model(
+        self,
+        model_name: str,
+        model,
+        X: pd.DataFrame,
+        y: pd.Series
+    ):
+        """
+        Evaluate a single machine learning model using
+        nested cross-validation.
 
-from sklearn.model_selection import GridSearchCV
+        Parameters
+        ----------
+        model_name : str
+            Name of the machine learning model.
 
-def _evaluate_model(
-    self,
-    model_name: str,
-    model,
-    X: pd.DataFrame,
-    y: pd.Series
-):
-    """
-    Evaluate a single machine learning model using nested
-    cross-validation.
+        model :
+            Machine learning estimator.
 
-    Parameters
-    ----------
-    model_name : str
-        Name of the machine learning model.
+        X : pandas.DataFrame
+            Feature matrix.
 
-    model : sklearn estimator
-        Machine learning model.
+        y : pandas.Series
+            Target labels.
 
-    X : pandas.DataFrame
-        Feature matrix.
+        Returns
+        -------
+        tuple
+            Model results and optimized final model.
+        """
 
-    y : pandas.Series
-        Target labels.
+        # -------------------------------------------------
+        # Storage
+        # -------------------------------------------------
 
-    Returns
-    -------
-    tuple
-        Dictionary of model results and the final optimized model.
-    """
+        y_prob_all = np.zeros(len(y))
 
-    # -----------------------------------------
-    # Storage
-    # -----------------------------------------
+        sample_predictions = pd.DataFrame({
 
-    y_prob_all = np.zeros(len(y))
+            "Sample_ID": X.index,
 
-    sample_predictions = pd.DataFrame({
+            "True_Label": y
 
-        "Sample_ID": X.index,
+        })
 
-        "True_Label": y
+        # -------------------------------------------------
+        # Hyperparameter grid
+        # -------------------------------------------------
 
-    })
+        param_grid = self.model_factory.get_param_grid(model_name)
 
-    # -----------------------------------------
-    # Hyperparameter grid
-    # -----------------------------------------
+        # -------------------------------------------------
+        # Outer Cross Validation
+        # -------------------------------------------------
 
-    param_grid = self.model_factory.get_param_grid(model_name)
+        for train_idx, test_idx in self.outer_cv.split(X, y):
 
-    # -----------------------------------------
-    # Outer Cross Validation
-    # -----------------------------------------
+            X_train = X.iloc[train_idx]
 
-    for train_idx, test_idx in self.outer_cv.split(X, y):
+            X_test = X.iloc[test_idx]
 
-        X_train = X.iloc[train_idx]
+            y_train = y.iloc[train_idx]
 
-        X_test = X.iloc[test_idx]
+            # Build pipeline
+            pipeline = PipelineBuilder.build(model)
 
-        y_train = y.iloc[train_idx]
+            # Hyperparameter optimization
+            grid = GridSearchCV(
 
-        y_test = y.iloc[test_idx]
+                estimator=pipeline,
 
-        # -----------------------------
-        # Build pipeline
-        # -----------------------------
+                param_grid=param_grid,
+
+                scoring="roc_auc",
+
+                cv=self.inner_cv,
+
+                n_jobs=-1
+
+            )
+
+            grid.fit(
+
+                X_train,
+
+                y_train
+
+            )
+
+            # Best model
+            best_model = grid.best_estimator_
+
+            y_prob = best_model.predict_proba(
+
+                X_test
+
+            )[:, 1]
+
+            # Store predictions
+            y_prob_all[test_idx] = y_prob
+
+            sample_predictions.loc[
+                test_idx,
+                "Predicted_Probability"
+            ] = y_prob
+
+        # -------------------------------------------------
+        # Train optimized model using the complete dataset
+        # -------------------------------------------------
+
+        final_model, best_params = self._train_final_model(
+
+            model_name=model_name,
+
+            model=model,
+
+            X=X,
+
+            y=y
+
+        )
+
+        # -------------------------------------------------
+        # Calculate model performance
+        # -------------------------------------------------
+
+        result = self._calculate_metrics(
+
+            y=y,
+
+            y_prob_all=y_prob_all,
+
+            sample_predictions=sample_predictions,
+
+            feature_names=X.columns.tolist(),
+
+            best_params=best_params
+
+        )
+
+        return result, final_model
+
+
+#_train_final_model()
+        def _train_final_model(
+        self,
+        model_name: str,
+        model,
+        X: pd.DataFrame,
+        y: pd.Series
+    ):
+        """
+        Train the optimized model on the complete dataset.
+
+        Parameters
+        ----------
+        model_name : str
+            Name of the machine learning model.
+
+        model :
+            Machine learning estimator.
+
+        X : pandas.DataFrame
+            Feature matrix.
+
+        y : pandas.Series
+            Target labels.
+
+        Returns
+        -------
+        tuple
+            final_model : fitted estimator
+
+            best_params : dict
+                Best hyperparameters selected by GridSearchCV.
+        """
 
         pipeline = PipelineBuilder.build(model)
 
-        # -----------------------------
-        # Hyperparameter tuning
-        # -----------------------------
+        param_grid = self.model_factory.get_param_grid(model_name)
 
-        grid = GridSearchCV(
+        final_grid = GridSearchCV(
 
             estimator=pipeline,
 
@@ -192,68 +309,134 @@ def _evaluate_model(
 
         )
 
-        grid.fit(
+        final_grid.fit(X, y)
 
-            X_train,
+        final_model = final_grid.best_estimator_
 
-            y_train
+        best_params = final_grid.best_params_
+
+        return final_model, best_params
+
+
+#_calculate_metrics()
+        def _calculate_metrics(
+        self,
+        y: pd.Series,
+        y_prob_all: np.ndarray,
+        sample_predictions: pd.DataFrame,
+        feature_names,
+        best_params
+    ):
+        """
+        Calculate model performance metrics.
+
+        Parameters
+        ----------
+        y : pandas.Series
+            True labels.
+
+        y_prob_all : numpy.ndarray
+            Predicted probabilities.
+
+        sample_predictions : pandas.DataFrame
+            Sample-level prediction table.
+
+        feature_names : list
+            Names of predictor variables.
+
+        best_params : dict
+            Best hyperparameters.
+
+        Returns
+        -------
+        dict
+            Dictionary containing all evaluation metrics.
+        """
+
+        # ------------------------------------------
+        # Binary predictions
+        # ------------------------------------------
+
+        y_pred = (y_prob_all >= 0.5).astype(int)
+
+        sample_predictions["Predicted_Class"] = y_pred
+
+        sample_predictions["Correct"] = (
+
+            sample_predictions["True_Label"]
+
+            ==
+
+            sample_predictions["Predicted_Class"]
 
         )
 
-        # -----------------------------
-        # Best model
-        # -----------------------------
+        # ------------------------------------------
+        # Bootstrap AUC Confidence Interval
+        # ------------------------------------------
 
-        best_model = grid.best_estimator_
+        auc_low, auc, auc_high = BootstrapCI.auc(
 
-        y_prob = best_model.predict_proba(
+            y,
 
-            X_test
+            y_prob_all
 
-        )[:, 1]
+        )
 
-        y_prob_all[test_idx] = y_prob
+        # ------------------------------------------
+        # Compute evaluation metrics
+        # ------------------------------------------
 
-        sample_predictions.loc[
+        metrics = Metrics.calculate(
 
-            test_idx,
+            y,
 
-            "Predicted_Probability"
+            y_pred,
 
-        ] = y_prob
+            y_prob_all
 
-    # -----------------------------------------
-    # Train final model on ALL samples
-    # -----------------------------------------
+        )
 
-    final_model, best_params = self._train_final_model(
+        # ------------------------------------------
+        # Results dictionary
+        # ------------------------------------------
 
-        model_name=model_name,
+        results = {
 
-        model=model,
+            # Predictions
+            "y_prob": y_prob_all,
 
-        X=X,
+            "y_pred": y_pred,
 
-        y=y
+            "Sample_Predictions": sample_predictions,
 
-    )
+            # Metadata
+            "feature_names": feature_names,
 
-    # -----------------------------------------
-    # Calculate metrics
-    # -----------------------------------------
+            "Best_Params": best_params,
 
-    result = self._calculate_metrics(
+            # ROC
+            "AUC": auc,
 
-        y=y,
+            "AUC_Low": auc_low,
 
-        y_prob_all=y_prob_all,
+            "AUC_High": auc_high,
 
-        sample_predictions=sample_predictions,
+            # Classification metrics
+            "Accuracy": metrics["Accuracy"],
 
-        feature_names=X.columns.tolist(),
+            "Precision": metrics["Precision"],
 
-        best_params=best_params
+            "Recall": metrics["Recall"],
 
-    )
+            "F1": metrics["F1"],
 
-    return result, final_model
+            "Brier": metrics["Brier"],
+
+            "Sensitivity": metrics["Sensitivity"],
+
+            "Specificity": metrics["Specificity"]
+
+        }
+
+        return results
