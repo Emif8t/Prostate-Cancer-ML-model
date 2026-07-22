@@ -1,3 +1,5 @@
+DATA_PATH = "C:/Users/USER/Desktop/data_analysis/ROCdata2.xlsx"
+
 CLINICAL_FEATURES = [
 
     "PSA",
