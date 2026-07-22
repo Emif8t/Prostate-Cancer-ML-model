@@ -2,22 +2,29 @@ import pandas as pd
 
 
 class Dataset:
+    """
+    Load and manage the dataset.
+    """
 
     def __init__(self, filepath):
+
         self.filepath = filepath
+
         self.df = None
 
     def load(self):
         """
-        data = Dataset("data/ROCdata2.xlsx")
-
-        df = data.load()
+        Load dataset from an Excel file.
         """
+
         self.df = pd.read_excel(self.filepath)
 
         return self.df
 
     def split_target(self, target):
+        """
+        Split features and target variable.
+        """
 
         X = self.df.drop(columns=[target])
 
@@ -25,4 +32,6 @@ class Dataset:
 
         return X, y
 
-        X, y = data.split_target("Group")
+
+    
+       
