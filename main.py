@@ -1,72 +1,139 @@
+"""
+main.py
+
+Entry point for the prostate cancer machine learning pipeline.
+"""
+
 from src.dataset import Dataset
-
+from src.preprocess import Preprocessor
 from src.models import ModelFactory
-
 from src.nested_cv import NestedCrossValidator
 
-from src.visualization import Visualizer
+from src.config import (
+    DATA_PATH,
+    TARGET_COLUMN,
+    CLINICAL_FEATURES,
+    MOLECULAR_FEATURES,
+    COMBINED_FEATURES
+)
 
-from src.exporter import Exporter
 
 def main():
-    print("📥 Loading data...")
-    X, y = load_data()
 
-    print("🧹 Preprocessing data...")
-    X_train, X_test, y_train, y_test = preprocess_data(X, y)
+    # =====================================================
+    # Load Dataset
+    # =====================================================
 
-    print("🤖 Training model...")
-    model = train_model(X_train, y_train)
+    print("\nLoading dataset...")
 
-    print("📊 Evaluating model...")
-    accuracy = evaluate_model(model, X_test, y_test)
+    dataset = Dataset(DATA_PATH)
 
-    print(f"✅ Model accuracy: {accuracy:.2f}")
+    df = dataset.load()
 
-if __name__ == "__main__":
-    main()
+    # =====================================================
+    # Preprocess Dataset
+    # =====================================================
 
+    print("Encoding target variable...")
 
-factory = ModelFactory()
+    df = Preprocessor.encode_group(df)
 
-validator = NestedCrossValidator(factory)
+    # Update Dataset object
+    dataset.df = df
 
-results, models = validator.run(X, y)
+    # =====================================================
+    # Split Features and Target
+    # =====================================================
 
+    X_all, y = dataset.split_target(TARGET_COLUMN)
 
-model_factory = ModelFactory()
-validator = NestedCrossValidator(model_factory)
+    # =====================================================
+    # Create Model Factory
+    # =====================================================
 
-feature_sets = {
-    "Clinical": clinical_features,
-    "Molecular": molecular_features,
-    "Combined": combined_features
-}
+    model_factory = ModelFactory()
 
-all_results = {}
-all_models = {}
+    # =====================================================
+    # Create Validator
+    # =====================================================
 
-for name, features in feature_sets.items():
+    validator = NestedCrossValidator(model_factory)
 
-    print(f"\n==== {name.upper()} ====")
+    # =====================================================
+    # Feature Sets
+    # =====================================================
 
-    results, models = validator.run(
-        X=df[features],
-        y=y
+    feature_sets = {
+
+        "Clinical": CLINICAL_FEATURES,
+
+        "Molecular": MOLECULAR_FEATURES,
+
+        "Combined": COMBINED_FEATURES
+
+    }
+
+    all_results = {}
+
+    all_models = {}
+
+    # =====================================================
+    # Run Models
+    # =====================================================
+
+    for feature_set_name, features in feature_sets.items():
+
+        print("\n" + "=" * 60)
+
+        print(f"{feature_set_name.upper()} FEATURES")
+
+        print("=" * 60)
+
+        X = X_all[features]
+
+        results, models = validator.run(
+
+            X=X,
+
+            y=y
+
+        )
+
+        all_results[feature_set_name] = results
+
+        all_models[feature_set_name] = models
+
+    # =====================================================
+    # Convenience Variables
+    # =====================================================
+
+    clinical_results = all_results["Clinical"]
+
+    molecular_results = all_results["Molecular"]
+
+    combined_results = all_results["Combined"]
+
+    clinical_models = all_models["Clinical"]
+
+    molecular_models = all_models["Molecular"]
+
+    combined_models = all_models["Combined"]
+
+    # =====================================================
+    # Save Sample Predictions
+    # =====================================================
+
+    combined_results["Extra Trees"]["Sample_Predictions"].to_excel(
+
+        "ExtraTrees_Predictions.xlsx",
+
+        index=False
+
     )
 
-    all_results[name] = results
-    all_models[name] = models
+    print("\nPipeline completed successfully.")
 
-clinical_results = all_results["Clinical"]
-molecular_results = all_results["Molecular"]
-combined_results = all_results["Combined"]
 
-clinical_models = all_models["Clinical"]
-molecular_models = all_models["Molecular"]
-combined_models = all_models["Combined"]
+if __name__ == "__main__":
 
-combined_results["Extra Trees"]["Sample_Predictions"].to_excel(
-    "ExtraTrees_Predictions.xlsx",
-    index=False
-)
+    main()
