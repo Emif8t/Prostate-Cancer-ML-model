@@ -1,7 +1,18 @@
 class Preprocessor:
+    """
+    Data preprocessing utilities.
+    """
 
     @staticmethod
     def encode_group(df):
+        """
+        Encode Group column.
+
+        Control -> 0
+        Case -> 1
+        """
+
+        df = df.copy()
 
         df["Group"] = (
 
@@ -12,17 +23,13 @@ class Preprocessor:
             .str.lower()
 
             .map({
-                "control":0,
-                "case":1
+
+                "control": 0,
+
+                "case": 1
+
             })
 
         )
 
         return df
-
-
-data = Dataset(path)
-
-df = data.load()
-
-df = Preprocessor.encode_group(df)
